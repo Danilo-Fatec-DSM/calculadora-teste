@@ -1,0 +1,110 @@
+name: CI - Development
+
+on:
+  push:
+    branches: [ main ]
+
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  security:
+    runs-on: ubuntu-latest  
+    steps:   
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Rodar lint
+        run: npm run lint
+
+      - name: Rodar Coverage
+        run: npm run coverage
+      - name: Scan for secrets
+        uses: gitleaks/gitleaks-action@v2
+
+      - name: Verificar vulnerabilidades
+        run: npm audit --audit-level=high 
+
+  quality:
+    runs-on: ubuntu-latest
+    needs: security
+  
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Rodar lint
+        run: npm run lint
+
+      - name: Rodar Coverage
+        run: npm run coverage
+      
+      - name: Análise com SonarCloud
+        uses: SonarSource/sonarcloud-github-action@v2
+        with:
+          args: >
+            -Dsonar.projectKey=Danilo-Fatec-DSM_pipeline-demo
+            -Dsonar.organization=danilo-fatec-dsm
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  build:
+    runs-on: ubuntu-latest
+    needs: quality
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Instalar dependências
+        run: npm install
+
+      - name: Gerar artefato
+        run: zip -r app.zip .
+
+      - name: Publicar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build
+          path: app.zip
+
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout Código
+        uses: actions/checkout@v4
+
+      - name: Instalar Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Instalar Dependências
+        run: npm install
+
+      - name: Rodar Testes
+        run: npm test
