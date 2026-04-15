@@ -108,7 +108,7 @@ jobs:
 
       - name: Rodar Testes
         run: npm test
-
+      
       - name: Login no Docker Hub
         uses: docker/login-action@v3
         with:
@@ -124,4 +124,3 @@ jobs:
 
       - name: Rodar testes dentro do Container
         run: docker run 0danilo0/pipeline-ci:latest npm test
-        
